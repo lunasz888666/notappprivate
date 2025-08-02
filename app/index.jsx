@@ -16,6 +16,8 @@ const HomeScreen = () => {
   VungleModule.initSdk('688e212cb59f5ddbdc827058');
   // 播放广告
   VungleModule.playAd('NOTEBOOK_INTERSTITIAL_1-6114492');
+  // 播放插屏
+  VungleModule.playInterstitial();
   // router.replace("/notes");
 
 
