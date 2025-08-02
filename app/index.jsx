@@ -1,33 +1,31 @@
 import PostItImage from "@/assets/images/post-it.png";
-import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
 import {
-  ActivityIndicator,
   Image,
+  NativeModules,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-
+const { VungleModule } = NativeModules;
 const HomeScreen = () => {
-  const { user, loading } = useAuth();
+  // const { user, loading } = useAuth();
   const router = useRouter();
+  // 初始化 SDK
+  VungleModule.initSdk('688e212cb59f5ddbdc827058');
+  // 播放广告
+  VungleModule.playAd('NOTEBOOK_INTERSTITIAL_1-6114492');
+  // router.replace("/notes");
 
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/notes");
-    }
-  }, [user, loading]);
 
-  if (loading) {
-    return (
-      <View style={styles.centeredContainter}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <View style={styles.centeredContainter}>
+  //       <ActivityIndicator size="large" color="#007bff" />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>

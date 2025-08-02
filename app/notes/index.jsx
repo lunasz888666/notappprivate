@@ -5,13 +5,12 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import noteService from "../../services/noteService";
+// import noteService from "../../services/noteService";
 
 const NoteScreen = () => {
   const router = useRouter();
@@ -35,76 +34,76 @@ const NoteScreen = () => {
   }, [user]);
 
   const fetchNotes = async () => {
-    setLoading(true);
-    const response = await noteService.getNotes(user.$id);
+    // setLoading(true);
+    // const response = await noteService.getNotes(user.$id);
 
-    if (response.error) {
-      setError(response.error);
-      Alert.alert("Error", response.error);
-    } else {
-      setNotes(response.data);
-      setError(null);
-    }
+    // if (response.error) {
+    //   setError(response.error);
+    //   Alert.alert("Error", response.error);
+    // } else {
+    //   setNotes(response.data);
+    //   setError(null);
+    // }
 
-    setLoading(false);
+    // setLoading(false);
   };
 
   // Add new note
 
   const addNote = async () => {
-    if (newNote.trim() === "") return;
+    // if (newNote.trim() === "") return;
 
-    const response = await noteService.addNote(user.$id, newNote);
-    if (response.error) {
-      Alert.alert("Error", response.error);
-    } else {
-      setNotes([...notes, response.data]);
-    }
+    // const response = await noteService.addNote(user.$id, newNote);
+    // if (response.error) {
+    //   Alert.alert("Error", response.error);
+    // } else {
+    //   setNotes([...notes, response.data]);
+    // }
 
-    setNewNote("");
-    setModalVisible(false);
+    // setNewNote("");
+    // setModalVisible(false);
   };
 
   const deleteNote = async (id) => {
-    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
+    // Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
+    //   {
+    //     text: "Cancel",
+    //     style: "cancel",
+    //   },
 
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          const response = await noteService.deleteNote(id);
-          if (response.error) {
-            Alert.alert("Error", response.error);
-          } else {
-            setNotes(notes.filter((note) => note.$id !== id));
-          }
-        },
-      },
-    ]);
+    //   {
+    //     text: "Delete",
+    //     style: "destructive",
+    //     onPress: async () => {
+    //       const response = await noteService.deleteNote(id);
+    //       if (response.error) {
+    //         Alert.alert("Error", response.error);
+    //       } else {
+    //         setNotes(notes.filter((note) => note.$id !== id));
+    //       }
+    //     },
+    //   },
+    // ]);
   };
 
   // Edit Note
 
   const editNote = async (id, newText) => {
-    if (!newText.trim()) {
-      Alert.alert("Error", "Note text cannot be empty");
-      return;
-    }
-    const response = await noteService.updateNote(id, newText);
+    // if (!newText.trim()) {
+    //   Alert.alert("Error", "Note text cannot be empty");
+    //   return;
+    // }
+    // const response = await noteService.updateNote(id, newText);
 
-    if (response.error) {
-      Alert.alert("Error", response.error);
-    } else {
-      setNotes((prevNotes) =>
-        prevNotes.map((note) =>
-          note.$id === id ? { ...note, text: response.data.text } : note
-        )
-      );
-    }
+    // if (response.error) {
+    //   Alert.alert("Error", response.error);
+    // } else {
+    //   setNotes((prevNotes) =>
+    //     prevNotes.map((note) =>
+    //       note.$id === id ? { ...note, text: response.data.text } : note
+    //     )
+    //   );
+    // }
   };
 
   return (
