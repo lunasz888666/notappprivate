@@ -150,12 +150,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation files('libs/vungle-ads-7.0.0.aar')
-    implementation files('libs/kotlinx-serialization-json-jvm-1.4.1.jar')
-    implementation files('libs/kotlinx-serialization-core-jvm-1.4.1.jar')
-    implementation files('libs/okhttp-4.10.0.jar')
-    implementation files('libs/okio-jvm-3.0.0.jar')
-    implementation files('libs/protobuf-kotlin-3.21.12.jar')
+    implementation 'com.vungle:vungle-ads:7.0.0'
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
     def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true";
