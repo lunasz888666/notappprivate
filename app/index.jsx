@@ -13,11 +13,11 @@ const HomeScreen = () => {
   // const { user, loading } = useAuth();
   const router = useRouter();
   // 初始化 SDK
-  VungleModule.initSdk('688e212cb59f5ddbdc827058');
+  VungleModule?.initSdk('688e212cb59f5ddbdc827058');
   // 播放广告
-  VungleModule.loadInterstitial('NOTEBOOK_INTERSTITIAL_1-6114492');
+  VungleModule?.loadInterstitial('NOTEBOOK_INTERSTITIAL_1-6114492');
   // 播放插屏
-  VungleModule.playInterstitial();
+  VungleModule?.playInterstitial();
   // router.replace("/notes");
 
 
@@ -40,6 +40,7 @@ const HomeScreen = () => {
         style={styles.button}
         onPress={() => router.push("/notes")}
       >
+        {/* 开始记录按钮 */}
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
     </View>

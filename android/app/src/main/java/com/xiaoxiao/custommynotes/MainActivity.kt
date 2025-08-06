@@ -1,4 +1,4 @@
-package com.rabbitmaid.notesapp
+package com.xiaoxiao.custommynotes
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

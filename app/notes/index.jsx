@@ -1,16 +1,20 @@
 import AddNoteModal from "@/components/AddNoteModal";
 import NoteList from "@/components/NoteList";
 import { useAuth } from "@/contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-// import noteService from "../../services/noteService";
+import { v4 as uuidv4 } from "uuid"; // Ensure you have installed uuid: npm install uuid
+
+const NOTES_STORAGE_KEY = "@user_notes";
 
 const NoteScreen = () => {
   const router = useRouter();
@@ -18,7 +22,7 @@ const NoteScreen = () => {
   const [notes, setNotes] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newNote, setNewNote] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -34,89 +38,77 @@ const NoteScreen = () => {
   }, [user]);
 
   const fetchNotes = async () => {
-    // setLoading(true);
-    // const response = await noteService.getNotes(user.$id);
-
-    // if (response.error) {
-    //   setError(response.error);
-    //   Alert.alert("Error", response.error);
-    // } else {
-    //   setNotes(response.data);
-    //   setError(null);
-    // }
-
-    // setLoading(false);
+    setLoading(true);
+    try {
+      const storedNotes = await AsyncStorage.getItem(`${NOTES_STORAGE_KEY}-${user.$id}`);
+      if (storedNotes !== null) {
+        setNotes(JSON.parse(storedNotes));
+      } else {
+        setNotes([]);
+      }
+      setError(null);
+    } catch (e) {
+      setError("Failed to load notes");
+    }
+    setLoading(false);
   };
 
-  // Add new note
+  const saveNotes = async (updatedNotes) => {
+    try {
+      await AsyncStorage.setItem(
+        `${NOTES_STORAGE_KEY}-${user.$id}`,
+        JSON.stringify(updatedNotes)
+      );
+    } catch (e) {
+      Alert.alert("Error", "Failed to save notes");
+    }
+  };
 
   const addNote = async () => {
-    // if (newNote.trim() === "") return;
-
-    // const response = await noteService.addNote(user.$id, newNote);
-    // if (response.error) {
-    //   Alert.alert("Error", response.error);
-    // } else {
-    //   setNotes([...notes, response.data]);
-    // }
-
-    // setNewNote("");
-    // setModalVisible(false);
+    if (newNote.trim() === "") return;
+    const note = { $id: uuidv4(), text: newNote };
+    const updatedNotes = [...notes, note];
+    setNotes(updatedNotes);
+    await saveNotes(updatedNotes);
+    setNewNote("");
+    setModalVisible(false);
   };
 
-  const deleteNote = async (id) => {
-    // Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
-    //   {
-    //     text: "Cancel",
-    //     style: "cancel",
-    //   },
-
-    //   {
-    //     text: "Delete",
-    //     style: "destructive",
-    //     onPress: async () => {
-    //       const response = await noteService.deleteNote(id);
-    //       if (response.error) {
-    //         Alert.alert("Error", response.error);
-    //       } else {
-    //         setNotes(notes.filter((note) => note.$id !== id));
-    //       }
-    //     },
-    //   },
-    // ]);
+  const deleteNote = (id) => {
+    Alert.alert("Delete Note", "Are you sure you want to delete this note?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const updatedNotes = notes.filter((note) => note.$id !== id);
+          setNotes(updatedNotes);
+          await saveNotes(updatedNotes);
+        },
+      },
+    ]);
   };
-
-  // Edit Note
 
   const editNote = async (id, newText) => {
-    // if (!newText.trim()) {
-    //   Alert.alert("Error", "Note text cannot be empty");
-    //   return;
-    // }
-    // const response = await noteService.updateNote(id, newText);
-
-    // if (response.error) {
-    //   Alert.alert("Error", response.error);
-    // } else {
-    //   setNotes((prevNotes) =>
-    //     prevNotes.map((note) =>
-    //       note.$id === id ? { ...note, text: response.data.text } : note
-    //     )
-    //   );
-    // }
+    if (!newText.trim()) {
+      Alert.alert("Error", "Note text cannot be empty");
+      return;
+    }
+    const updatedNotes = notes.map((note) =>
+      note.$id === id ? { ...note, text: newText } : note
+    );
+    setNotes(updatedNotes);
+    await saveNotes(updatedNotes);
   };
 
   return (
     <View style={styles.container}>
-      {/* NoteList */}
-
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
       ) : (
         <>
           {error && <Text style={styles.errorText}>{error}</Text>}
-
-          {(notes !== undefined && notes.length === 0) ? (
+          {notes.length === 0 ? (
             <Text style={styles.noNotesText}>You have no notes</Text>
           ) : (
             <NoteList notes={notes} onDelete={deleteNote} onEdit={editNote} />
@@ -130,8 +122,6 @@ const NoteScreen = () => {
       >
         <Text style={styles.addButtonText}>+ Add Note</Text>
       </TouchableOpacity>
-
-      {/* Modal */}
 
       <AddNoteModal
         modalVisible={modalVisible}
@@ -150,7 +140,6 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#fff",
   },
-
   addButton: {
     position: "absolute",
     bottom: 70,
@@ -161,20 +150,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-
   addButtonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
   },
-
   errorText: {
     color: "red",
     textAlign: "center",
     marginBottom: 10,
     fontSize: 16,
   },
-
   noNotesText: {
     textAlign: "center",
     fontSize: 18,

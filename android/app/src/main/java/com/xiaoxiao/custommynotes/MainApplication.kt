@@ -1,4 +1,4 @@
-package com.rabbitmaid.notesapp
+package com.xiaoxiao.custommynotes
 
 import android.app.Application
 import android.content.res.Configuration

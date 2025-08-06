@@ -1,4 +1,4 @@
-package com.rabbitmaid.notesapp
+package com.xiaoxiao.custommynotes
 
 import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext

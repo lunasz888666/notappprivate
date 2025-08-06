@@ -1,4 +1,4 @@
-package com.rabbitmaid.notesapp
+package com.xiaoxiao.custommynotes
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.rabbitmaid.notesapp"
+      "package": "com.xiaoxiao.custommynotes"
     },
     "web": {
       "bundler": "metro",
