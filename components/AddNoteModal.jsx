@@ -1,112 +1,113 @@
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
-const AddNoteModal = ({ modalVisible, setModalVisible, newNote, setNewNote, addNote,}) => {
+export default function AddNoteModal({
+  modalVisible,
+  setModalVisible,
+  newNote,
+  setNewNote,
+  addNote
+}) {
   return (
     <Modal
-      visible={modalVisible}
       animationType="slide"
-      transparent
-      onRequestClose={() => setModalVisible(false)}
+      transparent={true}
+      visible={modalVisible}
+      onRequestClose={() => setModalVisible(false)} // 安卓返回键关闭
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Add a New Note</Text>
+      <KeyboardAvoidingView
+        style={styles.centeredView}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>Add Note</Text>
 
           <TextInput
             style={styles.input}
-            placeholder="Enter note..."
-            placeholderTextColor="#aaa"
+            placeholder="Enter your note..."
             value={newNote}
             onChangeText={setNewNote}
+            multiline
           />
 
-          <View style={styles.modalButtons}>
+          <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.button, styles.cancelButton]}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.saveButton} onPress={addNote}>
-              <Text style={styles.saveButtonText}>Save</Text>
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={() => {
+                console.log("Save pressed with note:", newNote);
+                addNote();
+              }}
+            >
+              <Text style={styles.buttonText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  centeredView: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)"
   },
-
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
+  modalView: {
+    width: "90%",
+    backgroundColor: "white",
     borderRadius: 10,
-    width: "80%",
+    padding: 20
   },
-
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
+    marginBottom: 15
   },
-
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
+    borderRadius: 5,
     padding: 10,
-    fontSize: 16,
-    marginBottom: 15,
+    minHeight: 80,
+    textAlignVertical: "top",
+    marginBottom: 15
   },
-
-  modalButtons: {
+  buttonRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-between"
   },
-
+  button: {
+    flex: 1,
+    padding: 12,
+    marginHorizontal: 5,
+    borderRadius: 5,
+    alignItems: "center"
+  },
   cancelButton: {
-    backgroundColor: "#ccc",
-    padding: 10,
-    borderRadius: 5,
-    flex: 1,
-    marginRight: 10,
-    alignItems: "center",
+    backgroundColor: "#ccc"
   },
-
-  cancelButtonText: {
-    fontSize: 16,
-    color: "#333",
-  },
-
   saveButton: {
-    backgroundColor: "#007bff",
-    padding: 10,
-    borderRadius: 5,
-    flex: 1,
-    alignItems: "center",
+    backgroundColor: "#007bff"
   },
-
-  saveButtonText: {
-    fontSize: 16,
+  buttonText: {
     color: "#fff",
-  },
+    fontWeight: "bold"
+  }
 });
-
-export default AddNoteModal;
