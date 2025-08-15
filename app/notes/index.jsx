@@ -1,6 +1,7 @@
 import AddNoteModal from "@/components/AddNoteModal";
 import NoteList from "@/components/NoteList";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthPContext";
+import * as FileSystem from "expo-file-system";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
@@ -13,6 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const NOTES_DIR = FileSystem.documentDirectory + "notes/";
+
+// 获取笔记文件路径
+const getNotesFilePath = (userId) => {
+  return `${NOTES_DIR}${userId || "guest"}.json`; // 没有 userId 用 guest
+};
 
 const NoteScreen = () => {
   const router = useRouter();
@@ -87,6 +95,7 @@ const NoteScreen = () => {
 
 
   const loadNotes = async (user) => {
+
     try {
       const userId = user?.$id || 'temp_user';
       const filePath = getNotesFilePath(userId);
