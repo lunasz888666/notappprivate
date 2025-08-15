@@ -14,13 +14,6 @@ import {
   View,
 } from "react-native";
 
-const NOTES_DIR = FileSystem.documentDirectory + "notes/";
-
-// 获取笔记文件路径
-const getNotesFilePath = (userId) => {
-    return `${FileSystem.documentDirectory}notes_${userId}.json`;
-};
-
 const NoteScreen = () => {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -30,10 +23,12 @@ const NoteScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ===== 工具函数 =====
-  const safeId = (id = "") => String(id).replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storageKey = (userId) => `notes-${safeId(userId)}`;
+  const safeId = (id = "guest") => String(id).replace(/[^a-zA-Z0-9._-]/g, "_");
   const isWeb = Platform.OS === "web";
+
+  const getNotesFilePath = (userId) => {
+    return `${FileSystem.documentDirectory || ""}notes_${safeId(userId)}.json`;
+  };
 
   const serializeError = (err) => {
     if (!err) return "Unknown error";
@@ -55,62 +50,49 @@ const NoteScreen = () => {
     }
   };
 
-
-
-  // 读取
+  // ===== 读取笔记（首次打开自动返回空数组） =====
   const loadNotes = async (userId) => {
     try {
-      if (!userId) {
-        userId = "guest";
-      }
+      if (!userId) userId = "guest";
       const filePath = getNotesFilePath(userId);
 
-      // 读取文件（第二个参数必须传 { } 或者不传）
+      // 第二个参数必须传对象或不传
       const fileInfo = await FileSystem.getInfoAsync(filePath, {});
-
       if (!fileInfo.exists) {
-        console.log("📂 No notes file found, returning empty array.");
+        console.log("📂 Notes file does not exist, returning empty array.");
         return [];
       }
 
       const content = await FileSystem.readAsStringAsync(filePath, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-
-      return JSON.parse(content);
+      return content ? JSON.parse(content) : [];
     } catch (e) {
-      console.error("❌ Cannot load notes:", e);
-      Alert.alert("Error", `Failed to load notes: ${e.message}`);
+      console.error("❌ Failed to load notes:", e);
+      Alert.alert("Error", `Failed to load notes: ${e?.message || "Unknown error"}`);
       return [];
     }
   };
 
+  // ===== 保存笔记（首次写入自动创建文件夹） =====
   const saveNotes = async (userId, updatedNotes) => {
     try {
-      if (!userId) {
-        userId = "guest"; // 防止 user.$id 为空
-      }
+      if (!userId) userId = "guest";
       const filePath = getNotesFilePath(userId);
 
-      // 确保 documentDirectory 存在（理论上永远存在，但防御性代码）
-      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+      // 防御性检查 documentDirectory
+      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory, {});
       if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
-          intermediates: true,
-        });
+        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, { intermediates: true });
       }
 
-      // 写文件（第三个参数必须传 { encoding } 或者不传）
-      await FileSystem.writeAsStringAsync(
-        filePath,
-        JSON.stringify(updatedNotes),
-        { encoding: FileSystem.EncodingType.UTF8 }
-      );
-
+      await FileSystem.writeAsStringAsync(filePath, JSON.stringify(updatedNotes), {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
       console.log(`✅ Notes saved to: ${filePath}`);
     } catch (e) {
-      console.error("❌ Cannot save notes:", e);
-      Alert.alert("Error", `Failed to save notes: ${e.message}`);
+      console.error("❌ Failed to save notes:", e);
+      Alert.alert("Error", `Failed to save notes: ${e?.message || "Unknown error"}`);
     }
   };
 
@@ -138,22 +120,16 @@ const NoteScreen = () => {
     run();
   }, [user]);
 
-  // ===== CRUD =====
+  // ===== CRUD 操作 =====
   const addNote = async () => {
     if (newNote.trim() === "") return;
     const makeId = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
     const note = { $id: makeId(), text: newNote };
     const updated = [...notes, note];
     setNotes(updated);
-    try {
-      await saveNotes(user.$id, updated);
-      setNewNote("");
-      setModalVisible(false);
-    } catch (e) {
-      const detail = serializeError(e);
-      console.error("save(after add) error:", detail);
-      Alert.alert("Error", `Failed to save notes\n${detail}`);
-    }
+    await saveNotes(user?.$id, updated);
+    setNewNote("");
+    setModalVisible(false);
   };
 
   const deleteNote = (id) => {
@@ -165,13 +141,7 @@ const NoteScreen = () => {
         onPress: async () => {
           const updated = notes.filter((n) => n.$id !== id);
           setNotes(updated);
-          try {
-            await saveNotes(user.$id, updated);
-          } catch (e) {
-            const detail = serializeError(e);
-            console.error("save(after delete) error:", detail);
-            Alert.alert("Error", `Failed to save notes\n${detail}`);
-          }
+          await saveNotes(user?.$id, updated);
         },
       },
     ]);
@@ -184,13 +154,7 @@ const NoteScreen = () => {
     }
     const updated = notes.map((n) => (n.$id === id ? { ...n, text: newText } : n));
     setNotes(updated);
-    try {
-      await saveNotes(user.$id, updated);
-    } catch (e) {
-      const detail = serializeError(e);
-      console.error("save(after edit) error:", detail);
-      Alert.alert("Error", `Failed to save notes\n${detail}`);
-    }
+    await saveNotes(user?.$id, updated);
   };
 
   return (
