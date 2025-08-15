@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import 'react-native-get-random-values';
 const { VungleModule } = NativeModules;
 const HomeScreen = () => {
   // const { user, loading } = useAuth();

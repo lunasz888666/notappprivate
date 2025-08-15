@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { v4 as uuidv4 } from "uuid"; // Ensure you have installed uuid: npm install uuid
+// import { v4 as uuidv4 } from "uuid"; // Ensure you have installed uuid: npm install uuid
 
 const NOTES_STORAGE_KEY = "@user_notes";
 
@@ -66,7 +66,8 @@ const NoteScreen = () => {
 
   const addNote = async () => {
     if (newNote.trim() === "") return;
-    const note = { $id: uuidv4(), text: newNote };
+    const makeId = () => `${Date.now()}-${Math.floor(Math.random()*1e9)}`;
+    const note = { $id: makeId(), text: newNote };
     const updatedNotes = [...notes, note];
     setNotes(updatedNotes);
     await saveNotes(updatedNotes);
