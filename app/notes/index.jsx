@@ -89,7 +89,7 @@ const NoteScreen = () => {
       if (!userId) userId = "guest";
       const filePath = getNotesFilePath(userId);
 
-      const fileInfo = await FileSystem.getInfoAsync(filePath, {});
+      const fileInfo = await FileSystem.getInfoAsync(filePath);  // 移除了第二个参数
       if (!fileInfo.exists) return [];
 
       const content = await FileSystem.readAsStringAsync(filePath, {
@@ -110,7 +110,7 @@ const NoteScreen = () => {
       const filePath = getNotesFilePath(userId);
 
       // 确保 documentDirectory 存在
-      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory, {});
+      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);  // 移除了第二个参数
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
           intermediates: true,
@@ -125,6 +125,7 @@ const NoteScreen = () => {
       Alert.alert("Error", `Failed to save notes: ${e?.message || "Unknown error"}`);
     }
   };
+
 
   // ===== 路由/鉴权 =====
   useEffect(() => {
