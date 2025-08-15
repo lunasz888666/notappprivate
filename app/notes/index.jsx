@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+
 const NoteScreen = () => {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -23,70 +24,99 @@ const NoteScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const notesDir = `${FileSystem.documentDirectory || ""}notes/`;
+  const isWebOrNoDocDir = Platform.OS === "web" || !FileSystem.documentDirectory;
   // ==== 工具函数 ====
   const safeId = (id = "") => String(id).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const getNotesFilePath = (userId) => `${notesDir}notes-${safeId(userId)}.json`;
   const serializeError = (err) => {
     if (!err) return "Unknown error";
-    const obj = {
-      name: err.name,
-      message: err.message,
-      code: err.code,
-      stack: err.stack,
-      cause: err.cause,
-      toString: String(err),
-    };
-    try { return JSON.stringify(obj, null, 2); } catch { return String(err); }
-  };
-
-  const notesDir = `${FileSystem.documentDirectory || ""}notes/`;
-  const getNotesFilePath = (userId) => `${notesDir}notes-${safeId(userId)}.json`;
-
-  const ensureNotesDir = async () => {
-    if (Platform.OS === "web") return; // web 无需创建目录
-    const info = await FileSystem.getInfoAsync(notesDir);
-    if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(notesDir, { intermediates: true });
+    try {
+      return JSON.stringify(
+        {
+          name: err.name,
+          message: err.message,
+          code: err.code,
+          stack: err.stack,
+          cause: err.cause,
+          toString: String(err),
+        },
+        null,
+        2
+      );
+    } catch {
+      return String(err);
     }
   };
 
-  // Web 端（或 documentDirectory 不可用）回退到 localStorage
-  const isWebOrNoDocDir = Platform.OS === "web" || !FileSystem.documentDirectory;
 
+
+  const ensureNotesDir = async () => {
+    if (isWebOrNoDocDir) return; // Web 不需要目录
+    try {
+      // 目录存在时不会报错（intermediates: true）
+      await FileSystem.makeDirectoryAsync(notesDir, { intermediates: true });
+    } catch (e) {
+      // 某些 ROM 会抛“已存在”，忽略
+      const msg = String(e?.message || e);
+      if (!/already exists|exists|EEXIST/i.test(msg)) {
+        console.error("ensureNotesDir error:", serializeError(e));
+        throw e;
+      }
+    }
+  };
   useEffect(() => {
     if (!authLoading && !user) router.replace("/auth");
   }, [user, authLoading]);
 
   useEffect(() => {
-    if (user) fetchNotes();
+    if (user) {
+      fetchNotes(user)
+        .then(setNotes)
+        .catch((e) => setError(String(e?.message || e)))
+        .finally(() => setLoading(false));
+    };
   }, [user]);
 
-  const fetchNotes = async () => {
-    setLoading(true);
+  const fetchNotes = async (user) => {
     try {
       if (isWebOrNoDocDir) {
         const key = `notes-${safeId(user.$id)}`;
-        const s = typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
-        setNotes(s ? JSON.parse(s) : []);
+        const raw = typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
+        return raw ? JSON.parse(raw) : [];
       } else {
         await ensureNotesDir();
         const filePath = getNotesFilePath(user.$id);
-        const fileInfo = await FileSystem.getInfoAsync(filePath);
-        if (fileInfo.exists) {
-          const txt = await FileSystem.readAsStringAsync(filePath, { encoding: FileSystem.EncodingType.UTF8 });
-          setNotes(txt ? JSON.parse(txt) : []);
-        } else {
-          setNotes([]);
+
+        try {
+          const txt = await FileSystem.readAsStringAsync(filePath, {
+            encoding: FileSystem.EncodingType.UTF8,
+          });
+          return txt ? JSON.parse(txt) : [];
+        } catch (e) {
+          const msg = String(e?.message || e);
+          // 文件不存在 / 还没创建：返回空数组
+          if (/No such file|ENOENT|cannot read file|EISDIR/i.test(msg)) {
+            return [];
+          }
+          console.error("readAsStringAsync error:", serializeError(e));
+          throw e;
         }
       }
-      setError(null);
     } catch (e) {
-      console.error("fetchNotes error:", serializeError(e));
-      setError(`Failed to load notes\n${serializeError(e)}`);
+      const detail = serializeError(e);
+      console.error("fetchNotes error:", {
+        platform: Platform.OS,
+        documentDirectory: FileSystem.documentDirectory,
+        notesDir,
+        error: detail,
+      });
+      throw new Error(`Failed to load notes\n${detail}`);
     }
-    setLoading(false);
   };
 
-  const saveNotes = async (updatedNotes) => {
+
+  const saveNotes = async (user, updatedNotes) => {
     try {
       if (isWebOrNoDocDir) {
         const key = `notes-${safeId(user.$id)}`;
@@ -98,11 +128,9 @@ const NoteScreen = () => {
       } else {
         await ensureNotesDir();
         const filePath = getNotesFilePath(user.$id);
-        await FileSystem.writeAsStringAsync(
-          filePath,
-          JSON.stringify(updatedNotes),
-          { encoding: FileSystem.EncodingType.UTF8 }
-        );
+        await FileSystem.writeAsStringAsync(filePath, JSON.stringify(updatedNotes), {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
       }
     } catch (e) {
       const detail = serializeError(e);
@@ -114,22 +142,21 @@ const NoteScreen = () => {
         error: detail,
       });
       Alert.alert("Error", `Failed to save notes\n${detail}`);
-      // 同步抛出以便上层可观察
-      throw e;
+      throw e; // 保持可观测
     }
   };
 
   const addNote = async () => {
     if (newNote.trim() === "") return;
-    const makeId = () => `${Date.now()}-${Math.floor(Math.random()*1e9)}`;
+    const makeId = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
     const note = { $id: makeId(), text: newNote };
     const updatedNotes = [...notes, note];
     setNotes(updatedNotes);
     try {
-      await saveNotes(updatedNotes);
+      await saveNotes(user, updatedNotes);
       setNewNote("");
       setModalVisible(false);
-    } catch {}
+    } catch { }
   };
 
   const deleteNote = (id) => {
@@ -141,7 +168,7 @@ const NoteScreen = () => {
         onPress: async () => {
           const updatedNotes = notes.filter((n) => n.$id !== id);
           setNotes(updatedNotes);
-          try { await saveNotes(updatedNotes); } catch {}
+          try { await saveNotes(updatedNotes); } catch { }
         },
       },
     ]);
@@ -154,7 +181,7 @@ const NoteScreen = () => {
     }
     const updatedNotes = notes.map((n) => (n.$id === id ? { ...n, text: newText } : n));
     setNotes(updatedNotes);
-    try { await saveNotes(updatedNotes); } catch {}
+    try { await saveNotes(updatedNotes); } catch { }
   };
 
   return (
