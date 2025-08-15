@@ -50,8 +50,11 @@ function useAuth() {
 }
 
 // ===== 文件路径 =====
-const getNotesFilePath = (userId) =>
-  `${FileSystem.documentDirectory || ""}notes_${userId}.json`;
+const getNotesFilePath = (userId) => {
+  const dir = FileSystem.documentDirectory || "";
+  // 确保路径以 `file://` 开头（某些设备可能需要）
+  return `${dir}notes_${userId}.json`.replace(/^\/+/, "");
+};
 
 // ===== 主组件 =====
 const NoteScreen = () => {
@@ -109,13 +112,10 @@ const NoteScreen = () => {
       if (!userId) userId = "guest";
       const filePath = getNotesFilePath(userId);
 
-      // 确保 documentDirectory 存在
-      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);  // 移除了第二个参数
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
-          intermediates: true,
-        });
-      }
+      // 强制确保目录存在（不再检查 dirInfo.exists）
+      await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
+        intermediates: true,
+      });
 
       await FileSystem.writeAsStringAsync(filePath, JSON.stringify(updatedNotes), {
         encoding: FileSystem.EncodingType.UTF8,
