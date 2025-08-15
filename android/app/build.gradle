@@ -156,6 +156,7 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
+    implementation project(':@react-native-async-storage_async-storage')
     implementation("com.facebook.react:react-android")
     implementation 'com.vungle:vungle-ads:7.0.0'
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
