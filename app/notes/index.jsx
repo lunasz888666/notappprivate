@@ -3,7 +3,6 @@ import NoteList from "@/components/NoteList";
 import { useAuth } from "@/contexts/AuthPContext";
 import * as FileSystem from "expo-file-system";
 import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,7 +18,7 @@ const NOTES_DIR = FileSystem.documentDirectory + "notes/";
 
 // 获取笔记文件路径
 const getNotesFilePath = (userId) => {
-  return `${NOTES_DIR}${userId || "guest"}.json`; // 没有 userId 用 guest
+    return `${FileSystem.documentDirectory}notes_${userId}.json`;
 };
 
 const NoteScreen = () => {
@@ -56,81 +55,62 @@ const NoteScreen = () => {
     }
   };
 
-  // ===== Web/原生各自实现 =====
-  const webLoad = async (key) => {
+
+
+  // 读取
+  const loadNotes = async (userId) => {
     try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      throw new Error(`Web load failed: ${serializeError(e)}`);
-    }
-  };
-
-  const webSave = async (key, value) => {
-    try {
-      if (typeof localStorage === "undefined") throw new Error("localStorage not available");
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      throw new Error(`Web save failed: ${serializeError(e)}`);
-    }
-  };
-
-  const nativeLoad = async (key) => {
-    try {
-      const raw = await SecureStore.getItemAsync(key);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      throw new Error(`SecureStore load failed: ${serializeError(e)}`);
-    }
-  };
-
-  const nativeSave = async (key, value) => {
-    try {
-      await SecureStore.setItemAsync(key, JSON.stringify(value));
-    } catch (e) {
-      // 少数机型如果数据过大（很少见），会抛异常
-      throw new Error(`SecureStore save failed: ${serializeError(e)}`);
-    }
-  };
-
-
-  const loadNotes = async (user) => {
-
-    try {
-      const userId = user?.$id || 'temp_user';
+      if (!userId) {
+        userId = "guest";
+      }
       const filePath = getNotesFilePath(userId);
 
-      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      // 读取文件（第二个参数必须传 { } 或者不传）
+      const fileInfo = await FileSystem.getInfoAsync(filePath, {});
+
       if (!fileInfo.exists) {
-        return []; // 没有文件时返回空数组
+        console.log("📂 No notes file found, returning empty array.");
+        return [];
       }
 
       const content = await FileSystem.readAsStringAsync(filePath, {
         encoding: FileSystem.EncodingType.UTF8,
       });
+
       return JSON.parse(content);
     } catch (e) {
-      console.error('❌ Failed to load notes:', e);
-      Alert.alert("Error", `Failed to load notes: ${e?.message || 'Unknown error'}`);
+      console.error("❌ Cannot load notes:", e);
+      Alert.alert("Error", `Failed to load notes: ${e.message}`);
       return [];
     }
   };
 
-  const saveNotes = async (updatedNotes, user) => {
+  const saveNotes = async (userId, updatedNotes) => {
     try {
-      // 如果没有 user 或 ID，则使用临时 ID
-      const userId = user?.$id || 'temp_user';
+      if (!userId) {
+        userId = "guest"; // 防止 user.$id 为空
+      }
       const filePath = getNotesFilePath(userId);
 
-      // 写入文件
-      await FileSystem.writeAsStringAsync(filePath, JSON.stringify(updatedNotes), {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      // 确保 documentDirectory 存在（理论上永远存在，但防御性代码）
+      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
+          intermediates: true,
+        });
+      }
 
-      console.log(`✅ Notes saved to ${filePath}`);
+      // 写文件（第三个参数必须传 { encoding } 或者不传）
+      await FileSystem.writeAsStringAsync(
+        filePath,
+        JSON.stringify(updatedNotes),
+        { encoding: FileSystem.EncodingType.UTF8 }
+      );
+
+      console.log(`✅ Notes saved to: ${filePath}`);
     } catch (e) {
-      console.error('❌ Failed to save notes:', e);
-      Alert.alert("Error", `Failed to save notes: ${e?.message || 'Unknown error'}`);
+      console.error("❌ Cannot save notes:", e);
+      Alert.alert("Error", `Failed to save notes: ${e.message}`);
     }
   };
 
