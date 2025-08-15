@@ -43,7 +43,8 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "uuid": "^11.1.0",
-    "expo-secure-store": "~14.2.3"
+    "expo-secure-store": "~14.2.3",
+    "expo-file-system": "~18.1.11"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

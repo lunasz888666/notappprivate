@@ -19,6 +19,7 @@ function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    Alert.alert("Document directory:"+ FileSystem.documentDirectory)
     const initAuth = async () => {
       try {
         const storedUser = await AsyncStorage.getItem("localUser");
@@ -48,13 +49,6 @@ function useAuth() {
 
   return { user, loading, logout, setUser };
 }
-
-// ===== 文件路径 =====
-const getNotesFilePath = (userId) => {
-  const dir = FileSystem.documentDirectory || "";
-  // 确保路径以 `file://` 开头（某些设备可能需要）
-  return `${dir}notes_${userId}.json`.replace(/^\/+/, "");
-};
 
 // ===== 主组件 =====
 const NoteScreen = () => {
@@ -89,19 +83,19 @@ const NoteScreen = () => {
   // ===== 读取笔记 =====
   const loadNotes = async (userId) => {
     try {
-      if (!userId) userId = "guest";
-      const filePath = getNotesFilePath(userId);
+      const filePath = getNotesFilePath(userId || "guest");
 
-      const fileInfo = await FileSystem.getInfoAsync(filePath);  // 移除了第二个参数
+      // ✅ 关键修复：不传第二个参数
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
       if (!fileInfo.exists) return [];
 
       const content = await FileSystem.readAsStringAsync(filePath, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      return content ? JSON.parse(content) : [];
+      return JSON.parse(content) || [];
     } catch (e) {
-      console.error("Failed to load notes:", e);
-      Alert.alert("Error", `Failed to load notes: ${e?.message || "Unknown error"}`);
+      console.error("Load error:", e);
+      Alert.alert("Error", "Failed to load notes: " + e.message);
       return [];
     }
   };
@@ -109,10 +103,9 @@ const NoteScreen = () => {
   // ===== 保存笔记 =====
   const saveNotes = async (userId, updatedNotes) => {
     try {
-      if (!userId) userId = "guest";
-      const filePath = getNotesFilePath(userId);
+      const filePath = getNotesFilePath(userId || "guest");
 
-      // 强制确保目录存在（不再检查 dirInfo.exists）
+      // 强制创建目录（无需先检查是否存在）
       await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory, {
         intermediates: true,
       });
@@ -121,11 +114,10 @@ const NoteScreen = () => {
         encoding: FileSystem.EncodingType.UTF8,
       });
     } catch (e) {
-      console.error("Failed to save notes:", e);
-      Alert.alert("Error", `Failed to save notes: ${e?.message || "Unknown error"}`);
+      console.error("Save error:", e);
+      Alert.alert("Error", "Failed to save notes: " + e.message);
     }
   };
-
 
   // ===== 路由/鉴权 =====
   useEffect(() => {
