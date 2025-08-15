@@ -1,7 +1,7 @@
 import AddNoteModal from "@/components/AddNoteModal";
 import NoteList from "@/components/NoteList";
 import { useAuth } from "@/contexts/AuthContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -12,9 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// import { v4 as uuidv4 } from "uuid"; // Ensure you have installed uuid: npm install uuid
-
-const NOTES_STORAGE_KEY = "@user_notes";
 
 const NoteScreen = () => {
   const router = useRouter();
@@ -24,6 +21,10 @@ const NoteScreen = () => {
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // 获取文件路径
+  const getNotesFilePath = (userId) =>
+    `${FileSystem.documentDirectory}notes-${userId}.json`;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,9 +41,11 @@ const NoteScreen = () => {
   const fetchNotes = async () => {
     setLoading(true);
     try {
-      const storedNotes = await AsyncStorage.getItem(`${NOTES_STORAGE_KEY}-${user.$id}`);
-      if (storedNotes !== null) {
-        setNotes(JSON.parse(storedNotes));
+      const filePath = getNotesFilePath(user.$id);
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      if (fileInfo.exists) {
+        const fileContent = await FileSystem.readAsStringAsync(filePath);
+        setNotes(JSON.parse(fileContent));
       } else {
         setNotes([]);
       }
@@ -55,10 +58,8 @@ const NoteScreen = () => {
 
   const saveNotes = async (updatedNotes) => {
     try {
-      await AsyncStorage.setItem(
-        `${NOTES_STORAGE_KEY}-${user.$id}`,
-        JSON.stringify(updatedNotes)
-      );
+      const filePath = getNotesFilePath(user.$id);
+      await FileSystem.writeAsStringAsync(filePath, JSON.stringify(updatedNotes));
     } catch (e) {
       Alert.alert("Error", "Failed to save notes");
     }
@@ -66,7 +67,7 @@ const NoteScreen = () => {
 
   const addNote = async () => {
     if (newNote.trim() === "") return;
-    const makeId = () => `${Date.now()}-${Math.floor(Math.random()*1e9)}`;
+    const makeId = () => `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
     const note = { $id: makeId(), text: newNote };
     const updatedNotes = [...notes, note];
     setNotes(updatedNotes);
